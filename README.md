@@ -1,3 +1,3 @@
-# MultiView Pro 20 Dashboard
+# MultiView Pro Dynamic Dashboard (5, 10, 20, 50 Tabs)
 
-Aplikasi web dashboard MultiView interaktif dengan **20 jendela/frame paralel (iframe)**, kontrol Master URL untuk batch loading 20 view sekaligus, fitur pengatur kolom fleksibel, serta timer auto-reboot otomatis dengan hitung mundur.
+Aplikasi web dashboard MultiView interaktif yang mendukung pengaturan jumlah tab dinamis (**5, 10, 20, hingga 50 tab**), lengkap dengan Master URL untuk batch loading, timer auto-reboot otomatis, serta live countdown.
