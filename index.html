@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro MultiView Dashboard - Clean Embed Integration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 500: '#6366f1', 600: '#4f46e5' }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .desktop-frame-container {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+            background: #090d16;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+
+    <!-- Top Header -->
+    <header class="bg-slate-900/90 backdrop-blur border-b border-slate-800 sticky top-0 z-50 px-4 py-3 shadow-md">
+        <div class="max-w-[1920px] mx-auto flex flex-col lg:flex-row items-center justify-between gap-4">
+            
+            <!-- Branding & Status -->
+            <div class="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-start">
+                <div class="flex items-center gap-2">
+                    <div class="bg-indigo-600 text-white p-2 rounded-xl shadow-lg shadow-indigo-500/30">
+                        <i class="fa-solid fa-code text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg tracking-wide text-white">MultiView Custom Embed</h1>
+                        <p class="text-xs text-slate-400"><span id="active-count">10</span>-Screen Auto IP & Clean Slots</p>
+                    </div>
+                </div>
+                <!-- Mobile Timer Badge -->
+                <div id="mobile-timer-badge" class="lg:hidden flex items-center gap-1.5 bg-slate-800 px-3 py-1.5 rounded-full text-xs font-mono text-indigo-400 border border-slate-700">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span id="mobile-countdown">Off</span>
+                </div>
+            </div>
+
+            <!-- Master Control, IP List & URL Bar -->
+            <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-center">
+                <div class="relative flex-1 lg:w-64">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        <i class="fa-solid fa-link"></i>
+                    </span>
+                    <input type="url" id="master-url" placeholder="https://website.com (URL Global)" 
+                        class="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+                </div>
+                <button onclick="openIpModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-lg text-xs font-medium transition shadow-lg shadow-emerald-600/20 flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-list-check"></i> List IP (<span id="ip-count-badge">0</span>)
+                </button>
+                <button onclick="applyMasterUrlAndIps()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-sm font-medium transition shadow-lg shadow-indigo-600/20 flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-paper-plane"></i> Terapkan
+                </button>
+            </div>
+
+            <!-- Global Actions, Tab Count & Timer -->
+            <div class="flex items-center gap-3 w-full lg:w-auto justify-end flex-wrap">
+                <!-- Total Tabs Selector (5, 10, 20, 50) -->
+                <div class="flex items-center bg-slate-950 border border-slate-700 rounded-lg p-1">
+                    <span class="text-xs text-slate-400 px-2 font-medium hidden sm:inline"><i class="fa-solid fa-table-cells mr-1"></i> Tab:</span>
+                    <select id="total-tabs-select" onchange="changeTotalTabs(this.value)" class="bg-slate-900 text-slate-200 text-xs px-2 py-1 rounded border-none focus:outline-none cursor-pointer font-bold text-indigo-400">
+                        <option value="5">5 Tab</option>
+                        <option value="10" selected>10 Tab</option>
+                        <option value="20">20 Tab</option>
+                        <option value="50">50 Tab</option>
+                    </select>
+                </div>
+
+                <!-- Timer Selector -->
+                <div class="flex items-center bg-slate-950 border border-slate-700 rounded-lg p-1">
+                    <span class="text-xs text-slate-400 px-2 font-medium hidden sm:inline"><i class="fa-solid fa-stopwatch mr-1"></i> Reboot:</span>
+                    <select id="timer-select" onchange="changeTimer(this.value)" class="bg-slate-900 text-slate-200 text-xs px-2 py-1 rounded border-none focus:outline-none cursor-pointer">
+                        <option value="0">Mati</option>
+                        <option value="30">30 Detik</option>
+                        <option value="60">60 Detik</option>
+                        <option value="120">120 Detik</option>
+                    </select>
+                </div>
+
+                <!-- Live Countdown -->
+                <div class="hidden lg:flex items-center gap-1.5 bg-slate-800/80 px-3 py-1.5 rounded-lg text-xs font-mono text-indigo-400 border border-slate-700">
+                    <i class="fa-solid fa-hourglass-half animate-pulse"></i>
+                    <span id="desktop-countdown">Off</span>
+                </div>
+
+                <!-- Reboot All Button -->
+                <button onclick="rebootAll()" title="Refresh Semua Frame Sekaligus" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-lg text-sm font-medium transition shadow-lg shadow-emerald-600/20 flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-rotate"></i>
+                    <span class="hidden sm:inline">Reboot Semua</span>
+                </button>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- Main Grid Container -->
+    <main class="flex-1 max-w-[1920px] w-full mx-auto p-4">
+        <div id="grid-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Dynamic frames injected via JS -->
+        </div>
+    </main>
+
+    <!-- Modal List IP -->
+    <div id="ip-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col">
+            <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-list text-emerald-400"></i>
+                    <h3 class="font-bold text-base text-white">Masukkan List IP Proxy Otomatis</h3>
+                </div>
+                <button onclick="closeIpModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-5 flex flex-col gap-3">
+                <p class="text-xs text-slate-400">
+                    Masukkan daftar IP proxy (satu IP per baris). IP ini akan otomatis didistribusikan ke setiap tab secara berurutan.
+                </p>
+                <textarea id="ip-textarea" rows="8" placeholder="192.168.1.1:8080&#10;192.168.1.2:8080" 
+                    class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs font-mono text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"></textarea>
+            </div>
+            <div class="px-5 py-4 bg-slate-950 border-t border-slate-800 flex items-center justify-end gap-3">
+                <button onclick="closeIpModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition">Batal</button>
+                <button onclick="saveIpList()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-medium transition shadow-lg shadow-emerald-600/20">Simpan & Distribusikan IP</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 border-t border-slate-800 py-3 px-4 text-center text-xs text-slate-500">
+        MultiView Custom Embed Dashboard &copy; 2026 &bull; Clean Slots & Auto IP
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        let TOTAL_FRAMES = 10;
+        let countdownInterval = null;
+        let timeRemaining = 0;
+        let activeTimerSetting = 0;
+        let savedUrls = {}; 
+        let ipListArray = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderGridFrames();
+        });
+
+        function openIpModal() {
+            document.getElementById('ip-modal').classList.remove('hidden');
+        }
+
+        function closeIpModal() {
+            document.getElementById('ip-modal').classList.add('hidden');
+        }
+
+        function saveIpList() {
+            const rawText = document.getElementById('ip-textarea').value;
+            ipListArray = rawText.split('\n').map(item => item.trim()).filter(item => item !== '');
+            document.getElementById('ip-count-badge').innerText = ipListArray.length;
+            
+            for (let i = 1; i <= TOTAL_FRAMES; i++) {
+                const proxyInput = document.getElementById(`proxy-input-${i}`);
+                if (proxyInput) {
+                    if (ipListArray.length > 0) {
+                        proxyInput.value = ipListArray[(i - 1) % ipListArray.length];
+                    } else {
+                        proxyInput.value = '';
+                    }
+                }
+            }
+            closeIpModal();
+            alert(`Berhasil memuat ${ipListArray.length} IP dan mendistribusikannya ke setiap tab!`);
+        }
+
+        function changeTotalTabs(val) {
+            saveCurrentState();
+            TOTAL_FRAMES = parseInt(val, 10);
+            document.getElementById('active-count').innerText = TOTAL_FRAMES;
+            
+            renderGridFrames();
+            if (ipListArray.length > 0) {
+                for (let i = 1; i <= TOTAL_FRAMES; i++) {
+                    const proxyInput = document.getElementById(`proxy-input-${i}`);
+                    if (proxyInput) {
+                        proxyInput.value = ipListArray[(i - 1) % ipListArray.length];
+                    }
+                }
+            }
+        }
+
+        function saveCurrentState() {
+            for (let i = 1; i <= TOTAL_FRAMES; i++) {
+                const inputUrl = document.getElementById(`url-input-${i}`);
+                if (inputUrl && inputUrl.value.trim() !== '') {
+                    savedUrls[i] = inputUrl.value.trim();
+                } else {
+                    delete savedUrls[i];
+                }
+            }
+        }
+
+        function renderGridFrames() {
+            const container = document.getElementById('grid-container');
+            
+            if (TOTAL_FRAMES <= 5) {
+                container.className = "grid grid-cols-1 lg:grid-cols-2 gap-6";
+            } else if (TOTAL_FRAMES <= 10) {
+                container.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6";
+            } else if (TOTAL_FRAMES <= 20) {
+                container.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5";
+            } else {
+                container.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4";
+            }
+
+            let html = '';
+            for (let i = 1; i <= TOTAL_FRAMES; i++) {
+                let existingUrl = savedUrls[i] || '';
+                let existingProxy = '';
+                if (ipListArray.length > 0) {
+                    existingProxy = ipListArray[(i - 1) % ipListArray.length];
+                }
+                let frameHeight = TOTAL_FRAMES > 20 ? 'h-[520px]' : (TOTAL_FRAMES > 10 ? 'h-[580px]' : 'h-[640px]');
+                
+                html += `
+                <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-2xl flex flex-col ${frameHeight} group transition hover:border-slate-700">
+                    <!-- Frame Header -->
+                    <div class="bg-slate-900 px-3 py-2.5 border-b border-slate-800 flex flex-col gap-2">
+                        <div class="flex items-center gap-2">
+                            <span class="bg-indigo-600 text-white text-xs font-bold px-2 py-0.5 rounded shrink-0">#${i}</span>
+                            <div class="flex items-center bg-slate-950 border border-slate-700 rounded w-full px-2 py-1">
+                                <i class="fa-solid fa-code text-[10px] text-indigo-400 mr-2"></i>
+                                <input type="text" id="url-input-${i}" value="${existingUrl}" placeholder="https://..." onkeydown="handleUrlKey(event, ${i})"
+                                    class="bg-transparent text-xs text-slate-200 w-full focus:outline-none transition">
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 justify-between">
+                            <div class="flex items-center bg-slate-950 border border-slate-700 rounded w-full px-2 py-1">
+                                <i class="fa-solid fa-network-wired text-[10px] text-emerald-400 mr-2" title="Auto Assigned IP"></i>
+                                <input type="text" id="proxy-input-${i}" value="${existingProxy}" placeholder="Auto IP (ip:port)" 
+                                    class="bg-transparent text-[11px] font-mono text-emerald-300 w-full focus:outline-none transition">
+                            </div>
+                            <div class="flex items-center gap-1 shrink-0">
+                                <button onclick="loadFrameUrl(${i})" title="Load URL" class="text-slate-300 hover:text-white bg-indigo-600/80 hover:bg-indigo-600 p-1.5 rounded transition">
+                                    <i class="fa-solid fa-play text-xs"></i>
+                                </button>
+                                <button onclick="refreshFrame(${i})" title="Reboot Frame" class="text-slate-400 hover:text-emerald-400 p-1.5 rounded hover:bg-slate-800 transition">
+                                    <i class="fa-solid fa-rotate-right text-xs"></i>
+                                </button>
+                                <button onclick="openExternal(${i})" title="Buka di Tab Baru" class="text-slate-400 hover:text-amber-400 p-1.5 rounded hover:bg-slate-800 transition">
+                                    <i class="fa-solid fa-external-link text-xs"></i>
+                                </button>
+                                <button onclick="toggleFullscreen(${i})" title="Fullscreen" class="text-slate-400 hover:text-indigo-400 p-1.5 rounded hover:bg-slate-800 transition">
+                                    <i class="fa-solid fa-expand text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Frame Body dengan loading=eager & allow=autoplay -->
+                    <div class="flex-1 relative bg-white desktop-frame-container" id="frame-wrapper-${i}">
+                        <iframe id="frame-${i}" src="${existingUrl}" title="Halaman tujuan ${i}" loading="eager" allow="autoplay" class="w-full h-full border-none bg-white" style="${existingUrl ? '' : 'display:none;'}"></iframe>
+                        <div id="placeholder-${i}" class="absolute inset-0 flex flex-col items-center justify-center text-slate-600 p-4 text-center pointer-events-none bg-slate-950" style="${existingUrl ? 'display:none;' : ''}">
+                            <i class="fa-solid fa-globe text-4xl mb-2 opacity-40 text-emerald-500"></i>
+                            <p class="text-sm font-medium">Slot #${i} (Kosong)</p>
+                            <p class="text-xs text-slate-500 mt-1">Masukkan URL di atas untuk memulai</p>
+                        </div>
+                    </div>
+                </div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        function formatUrl(url) {
+            url = url.trim();
+            if (!url) return '';
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                return 'https://' + url;
+            }
+            return url;
+        }
+
+        function loadFrameUrl(id) {
+            const input = document.getElementById(`url-input-${id}`);
+            const frame = document.getElementById(`frame-${id}`);
+            const placeholder = document.getElementById(`placeholder-${id}`);
+            let url = formatUrl(input.value);
+
+            if (url) {
+                savedUrls[id] = url;
+                frame.src = url;
+                frame.style.display = 'block';
+                placeholder.style.display = 'none';
+                input.value = url;
+            } else {
+                frame.src = 'about:blank';
+                frame.style.display = 'none';
+                placeholder.style.display = 'flex';
+                delete savedUrls[id];
+            }
+        }
+
+        function handleUrlKey(event, id) {
+            if (event.key === 'Enter') {
+                loadFrameUrl(id);
+            }
+        }
+
+        function applyMasterUrlAndIps() {
+            const masterInput = document.getElementById('master-url');
+            let url = formatUrl(masterInput.value);
+            if (!url) {
+                alert('Silakan masukkan URL global terlebih dahulu.');
+                return;
+            }
+
+            for (let i = 1; i <= TOTAL_FRAMES; i++) {
+                const input = document.getElementById(`url-input-${i}`);
+                if (input) {
+                    input.value = url;
+                    loadFrameUrl(i);
+                }
+            }
+        }
+
+        function refreshFrame(id) {
+            const frame = document.getElementById(`frame-${id}`);
+            const currentSrc = frame.src;
+            if (currentSrc && currentSrc !== 'about:blank') {
+                frame.src = 'about:blank';
+                setTimeout(() => {
+                    frame.src = currentSrc;
+                }, 150);
+            }
+        }
+
+        function openExternal(id) {
+            const input = document.getElementById(`url-input-${id}`);
+            let url = formatUrl(input.value);
+            if (url && url !== 'about:blank') {
+                window.open(url, '_blank');
+            } else {
+                alert('URL pada slot ini belum diisi.');
+            }
+        }
+
+        function rebootAll() {
+            saveCurrentState();
+            for (let i = 1; i <= TOTAL_FRAMES; i++) {
+                refreshFrame(i);
+            }
+            resetTimer();
+        }
+
+        function toggleFullscreen(id) {
+            const wrapper = document.getElementById(`frame-wrapper-${id}`);
+            if (!document.enterFullscreen && !document.fullscreenElement) {
+                if (wrapper.requestFullscreen) {
+                    wrapper.requestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        function changeTimer(val) {
+            activeTimerSetting = parseInt(val, 10);
+            resetTimer();
+        }
+
+        function resetTimer() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+
+            if (activeTimerSetting <= 0) {
+                document.getElementById('desktop-countdown').innerText = 'Off';
+                document.getElementById('mobile-countdown').innerText = 'Off';
+                return;
+            }
+
+            timeRemaining = activeTimerSetting;
+            updateCountdownDisplay();
+
+            countdownInterval = setInterval(() => {
+                timeRemaining--;
+                if (timeRemaining <= 0) {
+                    rebootAll();
+                } else {
+                    updateCountdownDisplay();
+                }
+            }, 1000);
+        }
+
+        function updateCountdownDisplay() {
+            const text = `${timeRemaining}s`;
+            document.getElementById('desktop-countdown').innerText = text;
+            document.getElementById('mobile-countdown').innerText = text;
+        }
+    </script>
+</body>
+</html>
